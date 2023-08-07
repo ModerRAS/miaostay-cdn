@@ -1,0 +1,6 @@
+root_path = "/home"
+image_quality = 75
+gravatar_cdn = "aa"
+master_domain = "aaa"
+update_circle = 2
+picture_convert_threads = 1
