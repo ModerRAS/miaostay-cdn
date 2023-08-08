@@ -2,14 +2,14 @@ use image::io::Reader as ImageReader;
 use image::DynamicImage;
 use serde::{Deserialize, Serialize};
 
+use crate::global_config::{self, REGEXES};
 use std::io::Cursor;
 use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
+use user_agent_parser::UserAgentParser;
 use webp::*;
-
-use crate::global_config;
 
 #[derive(Deserialize, Serialize, Clone)]
 pub enum Rating {
@@ -89,7 +89,7 @@ pub async fn get_gravatar_image(
     Ok(resp.to_vec())
 }
 
-pub fn image_reader_from_buffer(buffer: &[u8]) -> Result<DynamicImage, ()> {
+pub fn image_reader_from_buffer(buffer: Vec<u8>) -> Result<DynamicImage, ()> {
     // let Ok(source_img) = load_from_memory(buffer) else {return Err(())};
     let Ok(source_img) = ImageReader::new(Cursor::new(buffer)).with_guessed_format() else {return Err(())};
     let Ok(source_img) = source_img.decode() else { return Err(())};
@@ -122,4 +122,71 @@ pub async fn save_to_file(bytes: Vec<u8>, path: PathBuf) -> Result<usize, ()> {
     // Writes some prefix of the byte string, not necessarily all of it.
     let Ok(size) = file.write(&bytes).await else { return Err(())};
     Ok(size)
+}
+
+pub fn is_support_webp(user_agent: String) -> bool {
+    let ua_parser = UserAgentParser::from_str(REGEXES.as_str()).unwrap();
+    let product = ua_parser.parse_product(user_agent.as_str());
+    let Some(product_name) = product.name else {return false};
+    let product_name = product_name.as_ref().clone();
+    let Some(product_major) = product.major else {return false};
+    let Ok(product_major) = str::parse::<i32>(product_major.as_ref().clone()) else { return false };
+    let Some(product_minor) = product.minor else {return false};
+    let Ok(product_minor)= str::parse::<i32>(product_minor.as_ref().clone()) else { return false };
+    match product_name {
+        "Edge" => {
+            if product_major >= 18 {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        "Chrome" | "Chrome Mobile WebView" => {
+            if product_major >= 32 {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        "Mobile Safari" => {
+            if product_major >= 14 {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        "Android" => {
+            if product_major > 4 || product_major == 4 && product_minor > 2 {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        "QQ Browser Mobile" => {
+            if product_major >= 13 {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        &_ => return false,
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::global_config::REGEXES;
+    use user_agent_parser::UserAgentParser;
+    #[test]
+    fn test_user_agent() {
+        let ua_parser = UserAgentParser::from_str(REGEXES.as_str()).unwrap();
+        let ua = " Mozilla/5.0 (iPad; U; CPU OS 4_2_1 like Mac OS X; zh-cn) AppleWebKit/533.17.9 (KHTML, like Gecko) Version/5.0.2 Mobile/8C148 Safari/6533.18.5";
+        let ios_ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5.1 Mobile/15E148 Safari/604.1";
+        let edge_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.188";
+        let android_ua = "Mozilla/5.0 (Linux; U; Android 9; zh-cn; HWI-AL00 Build/HUAWEIHWI-AL00) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/66.0.3359.126 MQQBrowser/10.1 Mobile Safari/537.36";
+        let android_ua2 = "Mozilla/5.0 (Linux; Android 9; MI 6 Build/PKQ1.190118.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/76.0.3809.89 Mobile Safari/537.36 T7/11.20 SP-engine/2.16.0 baiduboxapp/11.20.2.3 (Baidu; P1 9)";
+        let product = ua_parser.parse_product(android_ua2);
+        println!("{:#?}", product);
+        println!("{}", product.name.unwrap().as_ref());
+    }
 }

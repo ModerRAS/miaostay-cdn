@@ -1,14 +1,8 @@
 use handler::handle_gravatar;
-use job_scheduler::{Job, JobScheduler};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::time::Duration;
-use tokio;
-use warp::{
-    http::{Response, StatusCode},
-    Filter,
-};
+
 use crate::util::*;
+use tokio;
+use warp::Filter;
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
 async fn main() {
@@ -24,11 +18,12 @@ async fn main() {
         .and(warp::header("user-agent"))
         .and_then(handle_gravatar);
 
-    warp::serve(hello.or(gravatar))
-        .run(([0, 0, 0, 0], 5000))
-        .await;
+        let serve = warp::serve(gravatar)
+        .run(([0, 0, 0, 0], 5000));
+    println!("Now serving!");
+    serve.await;
 }
 
-mod util;
 mod global_config;
 mod handler;
+mod util;
