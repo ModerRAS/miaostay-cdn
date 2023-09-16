@@ -1,29 +1,57 @@
 use handler::handle_gravatar;
 
 use crate::util::*;
-use tokio;
-use warp::Filter;
+use std::{convert::Infallible, time::Duration};
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
-async fn main() {
-    // GET /hello/warp => 200 OK with body "Hello, warp!"
-    let hello = warp::path!("hello" / String).map(|name| format!("Hello, {}!", name));
 
-    let gravatar_query = warp::query::<GravatarQuery>()
-        .map(Some)
-        .or_else(|_| async { Ok::<(Option<GravatarQuery>,), std::convert::Infallible>((None,)) });
-    let gravatar = warp::get()
-        .and(warp::path!("v2" / "avatar" / String))
-        .and(gravatar_query)
-        .and(warp::header("user-agent"))
-        .and_then(handle_gravatar);
+use actix_web::{web, App, HttpResponse, HttpServer, get, Responder};
 
-        let serve = warp::serve(gravatar)
-        .run(([0, 0, 0, 0], 5000));
-    println!("Now serving!");
-    serve.await;
+use reqwest::{Client, StatusCode};
+use tokio_stream::StreamExt;
+use tracing::Span;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+// #[tokio::main]
+#[actix_rt::main]
+async fn main()->std::io::Result<()>{
+   HttpServer::new(||{
+        App::new()
+            .service(handle_gravatar)
+    })
+    .bind("127.0.0.1:8088")?
+    .run()
+    .await
 }
 
+
+// async fn proxy_via_reqwest(State(client): State<Client>) -> Response {
+//     let reqwest_response = match client.get("http://127.0.0.1:3000/stream").send().await {
+//         Ok(res) => res,
+//         Err(err) => {
+//             tracing::error!(%err, "request failed");
+//             return StatusCode::BAD_GATEWAY.into_response();
+//         }
+//     };
+
+//     let mut response_builder = Response::builder().status(reqwest_response.status());
+
+//     // This unwrap is fine because we haven't insert any headers yet so there can't be any invalid
+//     // headers
+//     *response_builder.headers_mut().unwrap() = reqwest_response.headers().clone();
+
+//     response_builder
+//         .body(Body::from_stream(reqwest_response.bytes_stream()))
+//         // Same goes for this unwrap
+//         .unwrap()
+// }
+
+// async fn stream_some_data() -> Body {
+//     let stream = tokio_stream::iter(0..5)
+//         .throttle(Duration::from_secs(1))
+//         .map(|n| n.to_string())
+//         .map(Ok::<_, Infallible>);
+//     Body::from_stream(stream)
+// } 
 mod global_config;
 mod handler;
 mod util;

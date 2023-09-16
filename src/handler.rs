@@ -1,30 +1,61 @@
-use warp::Rejection;
+use actix_web::{get, HttpResponse, HttpRequest};
 
-use crate::{util::{GravatarQuery, get_gravatar_image, is_support_webp, convert_to_webp, image_reader_from_buffer}, global_config::REGEXES};
-
-
+use crate::{util::{is_support_webp, convert_to_webp, image_reader_from_buffer, get_gravatar_image_with_raw_query}};
 
 
 
-pub async fn handle_gravatar(uri: String, p: Option<GravatarQuery>, user_agent: String) -> Result<Vec<u8>, Rejection> {
-    match p {
-        Some(obj) => {
-            
-            let Ok(image) = get_gravatar_image(uri.clone(), obj.clone()).await else { return Err(warp::reject())};
-            if is_support_webp(user_agent) {
-                let Ok(source_img) = image_reader_from_buffer(image) else {return Err(warp::reject())};
-                let Ok(out_img) = convert_to_webp(source_img) else { return Err(warp::reject())};
-                return Ok(out_img);
-            }
-            return Ok(image);
-            // Response::builder().body(format!(
-            //     "key1 = {}, key2 = {}",
-            //     obj.s.unwrap(),
-            //     obj.d.unwrap()
-            // ))
-        }
-        None => {
-            Err(warp::reject())
-        }
+#[get("/v1/avatar/{uri}")]
+pub async fn handle_gravatar(request: HttpRequest) -> HttpResponse {
+    let uri = request.uri().path().clone().replace("/v1/avatar/", "");
+    let query_string = request.query_string().to_string();
+    let Some(user_agent) = request.headers().get("User-Agent") else {
+        return HttpResponse::BadRequest().body("cannot get user agent");
+    };
+    let Ok(user_agent) = user_agent.to_str() else {
+        return HttpResponse::BadRequest().body("cannot get user agent");
+    };
+    let user_agent = user_agent.to_string();
+    // uri: web::Path<String>, p: web::Query<GravatarQuery>, user_agent: web::Header<http::header::USER_AGENT>
+    let Ok(image) = get_gravatar_image_with_raw_query(uri.clone(), query_string.clone()).await else { 
+        return HttpResponse::BadRequest().body("No Such Image");
+    };
+    println!("{}, {}, {}", uri, query_string, user_agent);
+    if is_support_webp(user_agent) {
+        let Ok(source_img) = image_reader_from_buffer(image) else {
+            return HttpResponse::BadRequest().body("cannot read image");
+        };
+        let Ok(out_img) = convert_to_webp(source_img) else { 
+            return HttpResponse::BadRequest().body("cannot convert to webp");
+        };
+        return HttpResponse::Ok().content_type("image/webp").body(out_img);
     }
+    return HttpResponse::Ok().content_type("image/jpeg").body(image);
+}
+
+#[get("/v1/image/{uri}")]
+pub async fn handle_image(request: HttpRequest) -> HttpResponse {
+    let uri = request.uri().path().clone().replace("/v1/image/", "");
+    let query_string = request.query_string().to_string();
+    let Some(user_agent) = request.headers().get("User-Agent") else {
+        return HttpResponse::BadRequest().body("cannot get user agent");
+    };
+    let Ok(user_agent) = user_agent.to_str() else {
+        return HttpResponse::BadRequest().body("cannot get user agent");
+    };
+    let user_agent = user_agent.to_string();
+    // uri: web::Path<String>, p: web::Query<GravatarQuery>, user_agent: web::Header<http::header::USER_AGENT>
+    let Ok(image) = get_gravatar_image_with_raw_query(uri.clone(), query_string.clone()).await else { 
+        return HttpResponse::BadRequest().body("No Such Image");
+    };
+    println!("{}, {}, {}", uri, query_string, user_agent);
+    if is_support_webp(user_agent) {
+        let Ok(source_img) = image_reader_from_buffer(image) else {
+            return HttpResponse::BadRequest().body("cannot read image");
+        };
+        let Ok(out_img) = convert_to_webp(source_img) else { 
+            return HttpResponse::BadRequest().body("cannot convert to webp");
+        };
+        return HttpResponse::Ok().content_type("image/webp").body(out_img);
+    }
+    return HttpResponse::Ok().content_type("image/jpeg").body(image);
 }

@@ -9,15 +9,19 @@ edition = "2021"
 image = "0.24.6"
 job_scheduler = "1.2.1"
 log4rs = "1.2.0"
-warp = "0.3.5"
 tokio = { version = "1", features = ["full"] }
 serde_json = "1.0.104"
 serde = "1.0.182"
-reqwest = "0.11.18"
+reqwest = { version = "0.11", features = ["stream"] }
 webp = "0.2.5"
 lazy_static = "1.4.0"
-toml = "0.7.6"
+toml = "0.8.0"
 config = "0.13.3"
 base64 = "0.21.2"
 user-agent-parser = "0.3.4"
-axum = "0.6.20"
+tokio-stream = "0.1"
+tower-http = { version = "0.4", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+actix-web = "4.4.0"
+actix-rt = "2.9.0"
