@@ -1,4 +1,4 @@
-use handler::handle_gravatar;
+use handler::{handle_gravatar, handle_image};
 
 use crate::util::*;
 use std::{convert::Infallible, time::Duration};
@@ -17,6 +17,7 @@ async fn main()->std::io::Result<()>{
    HttpServer::new(||{
         App::new()
             .service(handle_gravatar)
+            .service(handle_image)
     })
     .bind("127.0.0.1:8088")?
     .run()

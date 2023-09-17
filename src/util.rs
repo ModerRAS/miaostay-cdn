@@ -1,3 +1,4 @@
+use image::ImageBuffer;
 use image::io::Reader as ImageReader;
 use image::DynamicImage;
 use serde::{Deserialize, Serialize};
@@ -8,6 +9,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
+use tokio::io::AsyncReadExt;
 use user_agent_parser::UserAgentParser;
 use webp::*;
 
@@ -114,19 +116,26 @@ pub fn image_reader_from_buffer(buffer: Vec<u8>) -> Result<DynamicImage, ()> {
     // let source_img = ImageReader::new(Cursor::new(buffer)).with_guessed_format().unwrap().decode().unwrap();
     Ok(source_img)
 }
-pub fn image_reader_from_disk(path: PathBuf) -> Result<DynamicImage, ()> {
-    let Ok(source_img) = ImageReader::open(path) else { return Err(()) };
-    let Ok(source_img) = source_img.decode() else {return Err(())};
+pub async fn image_reader_from_disk(path: PathBuf) -> Result<DynamicImage, ()> {
+    let Ok(mut source_file) = File::open(path).await else {
+        return Err(());
+    };
+    let mut contents = vec![];
+    source_file.read_to_end(&mut contents).await;
+    let Ok(source_img) = image_reader_from_buffer(contents) else { return Err(()) };
+    
+    // let Ok(source_img) = image::load_from_memory(&contents) else { return Err(()) };
+    // let Ok(source_img) = source_img.decode() else {return Err(())};
     Ok(source_img)
 }
-pub fn convert_to_webp(source_img: DynamicImage) -> Result<Vec<u8>, ()> {
+pub fn convert_to_webp(source_img: &DynamicImage) -> Result<Vec<u8>, ()> {
     // let mut bytes: Vec<u8> = Vec::new();
-    let Ok(encoder) = Encoder::from_image(&source_img) else {return Err(())};
+    let Ok(encoder) = Encoder::from_image(source_img) else {return Err(())};
     let webp: WebPMemory = encoder.encode(global_config::CONFIG.image_quality);
     // let result = source_img.write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::WebP(75));
     Ok(webp.to_vec())
 }
-pub fn convert_to_jpg(source_img: DynamicImage) -> Result<Vec<u8>, ()> {
+pub fn convert_to_jpg(source_img: &DynamicImage) -> Result<Vec<u8>, ()> {
     let mut bytes: Vec<u8> = Vec::new();
     let _ = source_img.write_to(
         &mut Cursor::new(&mut bytes),
