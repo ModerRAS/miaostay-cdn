@@ -19,7 +19,7 @@ async fn main()->std::io::Result<()>{
             .service(handle_gravatar)
             .service(handle_image)
     })
-    .bind("127.0.0.1:8088")?
+    .bind("0.0.0.0:5000")?
     .run()
     .await
 }
