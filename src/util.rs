@@ -109,6 +109,23 @@ pub async fn get_gravatar_image_with_raw_query(uri: String, query_string: String
     Ok(resp.to_vec())
 }
 
+pub async fn get_gravatar_image_with_raw_url(uri: String) ->  Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let resp = reqwest::get(
+        format!(
+            "{}/{}",
+            global_config::CONFIG.gravatar_cdn,
+            uri
+        )
+        .trim_end_matches("&"),
+    )
+    .await?
+    .bytes()
+    .await?;
+
+    println!("{:#?}", resp);
+    Ok(resp.to_vec())
+}
+
 pub fn image_reader_from_buffer(buffer: Vec<u8>) -> Result<DynamicImage, ()> {
     // let Ok(source_img) = load_from_memory(buffer) else {return Err(())};
     let Ok(source_img) = ImageReader::new(Cursor::new(buffer)).with_guessed_format() else {return Err(())};

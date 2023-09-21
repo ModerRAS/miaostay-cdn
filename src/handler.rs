@@ -1,28 +1,69 @@
 use std::path::PathBuf;
 
-use crate::{util::{is_support_webp, convert_to_webp, image_reader_from_buffer, get_gravatar_image_with_raw_query, image_reader_from_disk, convert_to_jpg}, global_config};
+use crate::{util::{is_support_webp, convert_to_webp, image_reader_from_buffer, get_gravatar_image_with_raw_query, image_reader_from_disk, convert_to_jpg, get_gravatar_image_with_raw_url}, global_config};
+
+use tokio::{fs::File, io::AsyncReadExt};
 
 pub struct ImageWithMime {
     pub Mime: String,
     pub Data: Vec<u8>
 }
 
-pub async fn get_image(url: String) -> Result<ImageWithMime, Box<dyn std::error::Error>> {
+pub async fn get_image(url: String) -> Result<ImageWithMime, ()> {
+    let url = urlencoding::decode(&url).expect("UTF-8").into_owned();
     if url.starts_with("/v1/gravatar") {
         let uri = url.replace("/v1/avatar/", "");
-        let Ok(image) = get_gravatar_image_with_raw_query(uri, query_string.clone()).await else {
-            return Box<Error>::new
+        let Ok(image) = get_gravatar_image_with_raw_url(uri).await else {
+            return Err(())
         };
-        return ImageWithMime{ Mime: "image/jpeg", Data: image};
+        return Ok(ImageWithMime{ Mime: "image/jpeg".to_string(), Data: image});
     } else if url.starts_with("/v1/image") {
-
+        let uri = url.replace("/v1/image/", "");
+        let mut file_path = PathBuf::new();
+        file_path.push(&global_config::CONFIG.root_path);
+        for per_path in uri.split("/") {
+            let per_path = urlencoding::decode(per_path).expect("UTF-8").into_owned();
+            file_path.push(per_path);
+        }
+        // let file_path_str = file_path.to_string();
+        let Ok(mut source_file) = File::open(file_path).await else {
+            return Err(());
+        };
+        let mut contents = vec![];
+        source_file.read_to_end(&mut contents).await;
+        let mime = mime_guess::from_path(&url).first().expect("image/jpeg");
+        return Ok(ImageWithMime { Mime: mime.essence_str().to_string(), Data: contents });
+    } else {
+        return Err(());
     }
 }
 
-pub async fn convert_image(img: Vec<u8>, target_mime: String) -> Result<ImageWithMime, Box<dyn std::error::Error>> {
-
+pub async fn convert_image(img: Vec<u8>, target_mime: String) -> Result<ImageWithMime, ()> {
+    let Ok(img) = image_reader_from_buffer(img) else {
+        return Err(());
+    };
+    match target_mime.as_str() {
+        "image/webp" => {
+            let Ok(img) = convert_to_webp(&img) else {
+                return Err(());
+            };
+            Ok(ImageWithMime { Mime: "image/webp".to_string(), Data: img})
+        }
+        _ => {
+            let Ok(img) = convert_to_jpg(&img) else {
+                return Err(());
+            };
+            Ok(ImageWithMime { Mime: "image/jpeg".to_string(), Data: img})
+        }
+    }
 }
 
+pub fn get_target_mime(ua: String) -> String {
+    if is_support_webp(ua) {
+        return "image/webp".to_string();
+    }
+    return "image/jpeg".to_string();
+}
 
 pub fn get_user_agent(request: &HttpRequest) -> Option<String> {
     let Some(user_agent) = request.headers().get("User-Agent") else {
@@ -51,7 +92,7 @@ pub async fn handle_gravatar(request: HttpRequest) -> HttpResponse {
         let Ok(source_img) = image_reader_from_buffer(image) else {
             return HttpResponse::BadRequest().body("cannot read image");
         };
-        let Ok(out_img) = convert_to_webp(&source_img) else { 
+        let Ok(out_img) = convert_to_webp(&source_img) else {
             return HttpResponse::BadRequest().body("cannot convert to webp");
         };
         return HttpResponse::Ok().content_type("image/webp").body(out_img);

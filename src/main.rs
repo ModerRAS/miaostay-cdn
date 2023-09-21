@@ -1,24 +1,54 @@
 // use handler::{handle_gravatar, handle_image};
 
-use crate::util::*;
+use crate::{util::*, handler::{get_target_mime, get_image}};
 
 
-use tiny_http::{Server, Request};
+use tiny_http::{Server, Request, Header, Response, StatusCode};
 
+pub fn get_user_agent(headers: &[Header]) -> String {
+    for header in headers {
+        match header.field.as_str().as_str() {
+            "User-Agent" => {
+                println!("{:?}", header.value.as_str());
+                return header.value.as_str().to_string();
+            },
+            _ => continue
+        }
+    }
+    return String::from("");
+}
+pub fn get_referer(headers: &[Header]) -> String {
+    for header in headers {
+        match header.field.as_str().as_str() {
+            "Referer" => {
+                println!("{:?}", header.value.as_str());
+                return header.value.as_str().to_string();
+            },
+            _ => continue
+        }
+    }
+    return String::from("");
+}
+pub fn match_referer(referer: String, pattern: &String) -> bool {
+    if referer.starts_with(pattern) {
+        return true;
+    }
+    return false;
+}
 
-// #[tokio::main]
-// #[actix_rt::main]
-// async fn main()->std::io::Result<()>{
-//    HttpServer::new(||{
-//         App::new()
-//             .service(handle_gravatar)
-//             .service(handle_image)
-//     })
-//     .bind("0.0.0.0:5000")?
-//     .run()
-//     .await
-// }
-
+pub async fn handle_request(request: Request) {
+    let url = request.url();
+    let headers = request.headers();
+    println!("{:?}", url);
+    println!("accept {:?}", headers);
+    let ua = get_user_agent(headers);
+    let referer = get_referer(headers);
+    if !match_referer(referer, &global_config::CONFIG.master_domain) {
+        request.respond(Response::empty(StatusCode::from(403)));
+    }
+    let target_mime = get_target_mime(ua);
+    let image = get_image(url.to_string()).await;
+}
 
 #[tokio::main]
 async fn main() {
@@ -30,21 +60,7 @@ async fn main() {
             Err(e) => { println!("error: {}", e); break }
         };
         tokio::spawn(async move {
-            if request.url().starts_with("/v1/image/") {
-                println!("match image");
-            } else if request.url().starts_with("/v1/avatar") {
-                println!("match gravatar");
-            }
-            println!("{:?}", request.url());
-            println!("accept {:?}", request.headers());
-            for header in request.headers() {
-                match header.field.as_str().as_str() {
-                    "User-Agent" => {
-                        println!("{:?}", header.value.as_str());
-                    },
-                    _ => continue
-                }
-            }
+            handle_request(request).await;
         });
 
 
@@ -53,34 +69,7 @@ async fn main() {
     }
 }
 
-// async fn proxy_via_reqwest(State(client): State<Client>) -> Response {
-//     let reqwest_response = match client.get("http://127.0.0.1:3000/stream").send().await {
-//         Ok(res) => res,
-//         Err(err) => {
-//             tracing::error!(%err, "request failed");
-//             return StatusCode::BAD_GATEWAY.into_response();
-//         }
-//     };
-
-//     let mut response_builder = Response::builder().status(reqwest_response.status());
-
-//     // This unwrap is fine because we haven't insert any headers yet so there can't be any invalid
-//     // headers
-//     *response_builder.headers_mut().unwrap() = reqwest_response.headers().clone();
-
-//     response_builder
-//         .body(Body::from_stream(reqwest_response.bytes_stream()))
-//         // Same goes for this unwrap
-//         .unwrap()
-// }
-
-// async fn stream_some_data() -> Body {
-//     let stream = tokio_stream::iter(0..5)
-//         .throttle(Duration::from_secs(1))
-//         .map(|n| n.to_string())
-//         .map(Ok::<_, Infallible>);
-//     Body::from_stream(stream)
-// } 
 mod global_config;
-// mod handler;
+mod handler;
 mod util;
+mod handler;
