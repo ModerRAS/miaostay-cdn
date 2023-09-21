@@ -1,29 +1,57 @@
-use handler::{handle_gravatar, handle_image};
+// use handler::{handle_gravatar, handle_image};
 
 use crate::util::*;
-use std::{convert::Infallible, time::Duration};
 
 
-use actix_web::{web, App, HttpResponse, HttpServer, get, Responder};
+use tiny_http::{Server, Request};
 
-use reqwest::{Client, StatusCode};
-use tokio_stream::StreamExt;
-use tracing::Span;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 // #[tokio::main]
-#[actix_rt::main]
-async fn main()->std::io::Result<()>{
-   HttpServer::new(||{
-        App::new()
-            .service(handle_gravatar)
-            .service(handle_image)
-    })
-    .bind("0.0.0.0:5000")?
-    .run()
-    .await
-}
+// #[actix_rt::main]
+// async fn main()->std::io::Result<()>{
+//    HttpServer::new(||{
+//         App::new()
+//             .service(handle_gravatar)
+//             .service(handle_image)
+//     })
+//     .bind("0.0.0.0:5000")?
+//     .run()
+//     .await
+// }
 
+
+#[tokio::main]
+async fn main() {
+    let server: Server = Server::http("0.0.0.0:5000").unwrap();
+    loop {
+        // blocks until the next request is received
+        let request: Request = match server.recv() {
+            Ok(rq) => rq,
+            Err(e) => { println!("error: {}", e); break }
+        };
+        tokio::spawn(async move {
+            if request.url().starts_with("/v1/image/") {
+                println!("match image");
+            } else if request.url().starts_with("/v1/avatar") {
+                println!("match gravatar");
+            }
+            println!("{:?}", request.url());
+            println!("accept {:?}", request.headers());
+            for header in request.headers() {
+                match header.field.as_str().as_str() {
+                    "User-Agent" => {
+                        println!("{:?}", header.value.as_str());
+                    },
+                    _ => continue
+                }
+            }
+        });
+
+
+        // do something with the request
+        // ...
+    }
+}
 
 // async fn proxy_via_reqwest(State(client): State<Client>) -> Response {
 //     let reqwest_response = match client.get("http://127.0.0.1:3000/stream").send().await {
@@ -54,5 +82,5 @@ async fn main()->std::io::Result<()>{
 //     Body::from_stream(stream)
 // } 
 mod global_config;
-mod handler;
+// mod handler;
 mod util;

@@ -116,7 +116,7 @@ pub fn image_reader_from_buffer(buffer: Vec<u8>) -> Result<DynamicImage, ()> {
     // let source_img = ImageReader::new(Cursor::new(buffer)).with_guessed_format().unwrap().decode().unwrap();
     Ok(source_img)
 }
-pub async fn image_reader_from_disk(path: PathBuf) -> Result<DynamicImage, ()> {
+pub async fn image_reader_from_disk(path: &PathBuf) -> Result<DynamicImage, ()> {
     let Ok(mut source_file) = File::open(path).await else {
         return Err(());
     };
