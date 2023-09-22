@@ -110,6 +110,7 @@ pub async fn get_gravatar_image_with_raw_query(uri: String, query_string: String
 }
 
 pub async fn get_gravatar_image_with_raw_url(uri: String) ->  Result<Vec<u8>, Box<dyn std::error::Error>> {
+    println!("gravatar url is {}", &uri);
     let resp = reqwest::get(
         format!(
             "{}/{}",

@@ -1,6 +1,6 @@
 // use handler::{handle_gravatar, handle_image};
 
-use crate::{util::*, handler::{get_target_mime, get_image}};
+use crate::{util::*, handler::{get_target_mime, get_image, convert_image}};
 
 
 use tiny_http::{Server, Request, Header, Response, StatusCode};
@@ -37,17 +37,31 @@ pub fn match_referer(referer: String, pattern: &String) -> bool {
 }
 
 pub async fn handle_request(request: Request) {
-    let url = request.url();
-    let headers = request.headers();
-    println!("{:?}", url);
-    println!("accept {:?}", headers);
-    let ua = get_user_agent(headers);
-    let referer = get_referer(headers);
+    let url = (&request).url().to_owned();
+    let headers = (&request).headers().to_owned();
+    println!("{:?}", &url);
+    println!("accept {:?}", &headers);
+    let ua = get_user_agent(&headers);
+    let referer = get_referer(&headers);
     if !match_referer(referer, &global_config::CONFIG.master_domain) {
-        request.respond(Response::empty(StatusCode::from(403)));
+        let _ = request.respond(Response::empty(StatusCode::from(403)));
+        return;
     }
     let target_mime = get_target_mime(ua);
-    let image = get_image(url.to_string()).await;
+    println!("{:?}", &target_mime);
+    let Ok(image) = get_image(url.to_string()).await else {
+        println!("Cannot get image: {}", url.to_string());
+        let _ = request.respond(Response::empty(StatusCode::from(500)));
+        return;
+    };
+    let Ok(image) = convert_image(image.Data, target_mime).await else {
+        println!("Cannot convert image");
+        let _ = request.respond(Response::empty(StatusCode::from(500)));
+        return;
+    };
+    let _ = request.respond(Response::from_data(image.Data));
+    return;
+
 }
 
 #[tokio::main]
@@ -72,4 +86,3 @@ async fn main() {
 mod global_config;
 mod handler;
 mod util;
-mod handler;
