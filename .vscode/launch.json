@@ -5,39 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "lldb",
+            "name": "(Windows) Launch",
+            "type": "cppvsdbg",
             "request": "launch",
-            "name": "Debug executable 'miaostay-cdn'",
-            "cargo": {
-                "args": [
-                    "build",
-                    "--bin=miaostay-cdn",
-                    "--package=miaostay-cdn"
-                ],
-                "filter": {
-                    "name": "miaostay-cdn",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'miaostay-cdn'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=miaostay-cdn",
-                    "--package=miaostay-cdn"
-                ],
-                "filter": {
-                    "name": "miaostay-cdn",
-                    "kind": "bin"
-                }
-            },
+            "program": "${workspaceRoot}/target/debug/miaostay-cdn.exe",
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "externalConsole": true
             "args": ["-C",  ".\\Config.toml.example"],
             "cwd": "${workspaceFolder}"
         }
