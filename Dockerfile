@@ -2,6 +2,7 @@
 FROM rust:bookworm as builder
 
 WORKDIR /usr/src/app
+RUN apt-get install -y pkg-config libssl-dev
 COPY . .
 # Will build and cache the binary and dependent crates in release mode
 RUN cargo build --release --verbose && mv ./target/release/miaostay-cdn /miaostay-cdn
