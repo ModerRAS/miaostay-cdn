@@ -106,7 +106,6 @@ pub async fn get_gravatar_image_with_raw_query(uri: String, query_string: String
     .bytes()
     .await?;
 
-    println!("{:#?}", resp);
     Ok(resp.to_vec())
 }
 
@@ -144,11 +143,34 @@ pub async fn image_reader_from_disk(path: &PathBuf) -> Result<DynamicImage, ()> 
     let mut contents = vec![];
     let _ = source_file.read_to_end(&mut contents).await;
     let Ok(source_img) = image_reader_from_buffer(contents) else { return Err(()) };
-    
+
     // let Ok(source_img) = image::load_from_memory(&contents) else { return Err(()) };
     // let Ok(source_img) = source_img.decode() else {return Err(())};
     Ok(source_img)
 }
+
+pub async fn file_reader_from_disk(path: &PathBuf) -> Result<Vec<u8>, ()> {
+    let Ok(mut source_file) = File::open(path).await else {
+        return Err(());
+    };
+    let mut contents = vec![];
+    let _ = source_file.read_to_end(&mut contents).await;
+
+    // let Ok(source_img) = image::load_from_memory(&contents) else { return Err(()) };
+    // let Ok(source_img) = source_img.decode() else {return Err(())};
+    Ok(contents)
+}
+
+pub async fn file_writer_to_disk(file_data: &Vec<u8>, path: &PathBuf) -> bool {
+    let Ok(mut file) = File::create(path).await else {
+        return false;
+    };
+    let Ok(_) = file.write_all(file_data.as_slice()).await else {
+        return false;
+    };
+    return true;
+}
+
 pub fn convert_to_webp(source_img: &DynamicImage) -> Result<Vec<u8>, ()> {
     // let mut bytes: Vec<u8> = Vec::new();
     let Ok(encoder) = Encoder::from_image(source_img) else {return Err(())};

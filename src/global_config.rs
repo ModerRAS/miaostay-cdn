@@ -11,6 +11,7 @@ pub struct GlobalConfig {
     pub master_domain: String,
     pub update_circle: u32,
     pub picture_convert_threads: u32,
+    pub temp_path: String
 }
 
 lazy_static::lazy_static! {
