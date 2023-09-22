@@ -110,15 +110,13 @@ pub async fn get_gravatar_image_with_raw_query(uri: String, query_string: String
 }
 
 pub async fn get_gravatar_image_with_raw_url(uri: String) ->  Result<Vec<u8>, Box<dyn std::error::Error>> {
-    println!("gravatar url is {}", &uri);
-    let resp = reqwest::get(
-        format!(
-            "{}/{}",
-            global_config::CONFIG.gravatar_cdn,
-            uri
-        )
-        .trim_end_matches("&"),
-    )
+    let url = format!(
+        "{}/{}",
+        global_config::CONFIG.gravatar_cdn,
+        uri
+    );
+    println!("gravatar url is {}", &url);
+    let resp = reqwest::get(url)
     .await?
     .bytes()
     .await?;
