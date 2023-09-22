@@ -10,7 +10,7 @@ RUN cargo build --release --verbose && mv ./target/release/miaostay-cdn /miaosta
 # Runtime image
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt install -y openssl
+RUN apt-get update && apt install -y openssl pkg-config libssl-dev
 
 # Get compiled binaries from builder's cargo install directory
 COPY --from=builder /miaostay-cdn /miaostay-cdn
