@@ -21,7 +21,7 @@ lazy_static::lazy_static! {
 pub fn load_config() -> GlobalConfig {
     let args: Vec<String> = env::args().collect();
     if args.len() == 3 && args[1] == "-C" {
-        let mut file = File::open(args[2].as_str()).unwrap();
+        let _file = File::open(args[2].as_str()).unwrap();
         let contents: String = String::from_utf8_lossy(&fs::read(args[2].as_str()).unwrap())
             .parse()
             .unwrap();

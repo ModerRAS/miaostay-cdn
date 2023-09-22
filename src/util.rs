@@ -1,4 +1,3 @@
-use image::ImageBuffer;
 use image::io::Reader as ImageReader;
 use image::DynamicImage;
 use serde::{Deserialize, Serialize};
@@ -52,6 +51,7 @@ pub struct GravatarQuery {
     pub r: Option<Rating>,
     pub d: Option<u32>,
 }
+#[allow(unused)]
 pub async fn get_gravatar_image(
     uri: String,
     gravatar_query: GravatarQuery,
@@ -91,6 +91,7 @@ pub async fn get_gravatar_image(
     Ok(resp.to_vec())
 }
 
+#[allow(unused)]
 pub async fn get_gravatar_image_with_raw_query(uri: String, query_string: String) ->  Result<Vec<u8>, Box<dyn std::error::Error>> {
     let resp = reqwest::get(
         format!(
@@ -134,12 +135,14 @@ pub fn image_reader_from_buffer(buffer: Vec<u8>) -> Result<DynamicImage, ()> {
     // let source_img = ImageReader::new(Cursor::new(buffer)).with_guessed_format().unwrap().decode().unwrap();
     Ok(source_img)
 }
+
+#[allow(unused)]
 pub async fn image_reader_from_disk(path: &PathBuf) -> Result<DynamicImage, ()> {
     let Ok(mut source_file) = File::open(path).await else {
         return Err(());
     };
     let mut contents = vec![];
-    source_file.read_to_end(&mut contents).await;
+    let _ = source_file.read_to_end(&mut contents).await;
     let Ok(source_img) = image_reader_from_buffer(contents) else { return Err(()) };
     
     // let Ok(source_img) = image::load_from_memory(&contents) else { return Err(()) };
@@ -161,6 +164,7 @@ pub fn convert_to_jpg(source_img: &DynamicImage) -> Result<Vec<u8>, ()> {
     );
     Ok(bytes)
 }
+#[allow(unused)]
 pub async fn save_to_file(bytes: Vec<u8>, path: PathBuf) -> Result<usize, ()> {
     let Ok(mut file) = File::create(&path).await else { return Err(())};
 

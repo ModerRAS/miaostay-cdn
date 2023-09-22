@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 
-use crate::{util::{is_support_webp, convert_to_webp, image_reader_from_buffer, get_gravatar_image_with_raw_query, image_reader_from_disk, convert_to_jpg, get_gravatar_image_with_raw_url}, global_config};
+use crate::{util::{is_support_webp, convert_to_webp, image_reader_from_buffer, convert_to_jpg, get_gravatar_image_with_raw_url}, global_config};
 
 use tokio::{fs::File, io::AsyncReadExt};
 
 pub struct ImageWithMime {
-    pub Mime: String,
-    pub Data: Vec<u8>
+    pub mime: String,
+    pub data: Vec<u8>
 }
 
 pub async fn get_image(url: String) -> Result<ImageWithMime, ()> {
@@ -19,7 +19,7 @@ pub async fn get_image(url: String) -> Result<ImageWithMime, ()> {
         let Ok(image) = get_gravatar_image_with_raw_url(uri).await else {
             return Err(())
         };
-        return Ok(ImageWithMime{ Mime: "image/jpeg".to_string(), Data: image});
+        return Ok(ImageWithMime{ mime: "image/jpeg".to_string(), data: image});
     } else if is_image {
         let uri = url.replace("/v1/image/", "");
         let mut file_path = PathBuf::new();
@@ -33,9 +33,9 @@ pub async fn get_image(url: String) -> Result<ImageWithMime, ()> {
             return Err(());
         };
         let mut contents = vec![];
-        source_file.read_to_end(&mut contents).await;
+        let _ = source_file.read_to_end(&mut contents).await;
         let mime = mime_guess::from_path(&url).first().expect("image/jpeg");
-        return Ok(ImageWithMime { Mime: mime.essence_str().to_string(), Data: contents });
+        return Ok(ImageWithMime { mime: mime.essence_str().to_string(), data: contents });
     } else {
         return Err(());
     }
@@ -50,13 +50,13 @@ pub async fn convert_image(img: Vec<u8>, target_mime: String) -> Result<ImageWit
             let Ok(img) = convert_to_webp(&img) else {
                 return Err(());
             };
-            Ok(ImageWithMime { Mime: "image/webp".to_string(), Data: img})
+            Ok(ImageWithMime { mime: "image/webp".to_string(), data: img})
         }
         _ => {
             let Ok(img) = convert_to_jpg(&img) else {
                 return Err(());
             };
-            Ok(ImageWithMime { Mime: "image/jpeg".to_string(), Data: img})
+            Ok(ImageWithMime { mime: "image/jpeg".to_string(), data: img})
         }
     }
 }

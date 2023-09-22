@@ -1,6 +1,6 @@
 // use handler::{handle_gravatar, handle_image};
 
-use crate::{util::*, handler::{get_target_mime, get_image, convert_image}};
+use crate::handler::{get_target_mime, get_image, convert_image};
 
 
 use tiny_http::{Server, Request, Header, Response, StatusCode};
@@ -54,12 +54,12 @@ pub async fn handle_request(request: Request) {
         let _ = request.respond(Response::empty(StatusCode::from(500)));
         return;
     };
-    let Ok(image) = convert_image(image.Data, target_mime).await else {
+    let Ok(image) = convert_image(image.data, target_mime).await else {
         println!("Cannot convert image");
         let _ = request.respond(Response::empty(StatusCode::from(500)));
         return;
     };
-    let _ = request.respond(Response::from_data(image.Data));
+    let _ = request.respond(Response::from_data(image.data));
     return;
 
 }
