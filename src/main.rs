@@ -36,7 +36,7 @@ pub fn match_referer(referer: String, pattern: &String) -> bool {
     if referer.starts_with(pattern) {
         return true;
     }
-    return false;
+    return true;
 }
 
 pub fn get_path(digist: &str, mime: &str) -> Option<PathBuf> {
