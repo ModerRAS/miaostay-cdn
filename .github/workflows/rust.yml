@@ -29,3 +29,17 @@ jobs:
         context: .
         push: true
         tags: moderras/miaostaycdn:latest
+    - name: Deploy to Server
+      uses: cross-the-world/ssh-scp-ssh-pipelines@v1.1.4
+      with:
+        # ssh remote host
+        host: ${{ secrets.SERVER_IP }}
+        # ssh remote port
+        port: ${{ secrets.SERVER_PORT }}
+        # ssh remote user
+        user: ${{ secrets.SERVER_USER }}
+        # ssh remote password
+        pass: ${{ secrets.SERVER_PASSWORD }}
+        # execute pre-commands before scp
+        first_ssh: kubectl delete pods typecho && kubectl apply -f /data/typecho/typecho.yaml
+  
