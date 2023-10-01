@@ -36,7 +36,7 @@ pub fn match_referer(referer: String, pattern: &String) -> bool {
     if referer.starts_with(pattern) {
         return true;
     }
-    return true;
+    return false;
 }
 
 pub fn get_path(digist: &str, mime: &str) -> Option<PathBuf> {
@@ -83,7 +83,7 @@ pub async fn handle_request(request: Request) {
     println!("accept {:?}", &headers);
     let ua = get_user_agent(&headers);
     let referer = get_referer(&headers);
-    if !match_referer(referer, &global_config::CONFIG.master_domain) {
+    if !match_referer(referer, &global_config::CONFIG.master_domain) && url.to_string().starts_with("/v1/image") {
         let _ = request.respond(Response::empty(StatusCode::from(403)));
         return;
     }
